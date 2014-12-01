@@ -42,11 +42,13 @@ public class VirtualChestManager {
 		};
 		for (File chestFile : dataFolder.listFiles(filter)) {
 			String chestFileName = chestFile.getName();
+			logger.log(Level.INFO, "Attempting to load chest: " + chestFileName);
 			try {
 				try {
 					UUID playerUUID = UUID.fromString(chestFileName.substring(0, chestFileName.length() - YAML_EXTENSION_LENGTH));
 					chests.put(playerUUID, InventoryIO.loadFromYaml(chestFile));
 				} catch (IllegalArgumentException e){
+					logger.log(Level.INFO, "Attempting to convert chest to uuid: " + chestFileName);
 					// Assume that the filename isn't a UUID, and is therefore an old player-name chest
 					String playerName = chestFileName.substring(0, chestFileName.length() - YAML_EXTENSION_LENGTH);
 					Boolean flagPlayerNotFound = true;
@@ -55,7 +57,10 @@ public class VirtualChestManager {
 						if (player.getName().toLowerCase().equals(playerName)) {
 							flagPlayerNotFound = false;
 							chests.put(player.getUniqueId(), InventoryIO.loadFromYaml(chestFile));
-							chestFile.deleteOnExit();
+							File newChestFile = new File(dataFolder, player.getUniqueId().toString() + YAML_CHEST_EXTENSION);
+							InventoryIO.saveToYaml(getChest(player.getUniqueId()), newChestFile);
+							chestFile.delete();
+							logger.log(Level.INFO, "Converted chest " + chestFileName + " to uuid " + player.getUniqueId());
 						}
 					}
 					if (flagPlayerNotFound) {
@@ -67,7 +72,7 @@ public class VirtualChestManager {
 			}
 		}
 
-		logger.info("loaded " + chests.size() + " chests");
+		logger.info("Loaded " + chests.size() + " chests");
 	}
 
 	/**
